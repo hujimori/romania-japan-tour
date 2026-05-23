@@ -134,13 +134,26 @@ function buildMailtoUrl({ subject, body }) {
   return `mailto:${CONFIG.RECIPIENT_EMAIL}?subject=${su}&body=${bd}`;
 }
 
-function buildAndroidIntentUrl(packageName, content) {
-  /* intent:// URL with browser_fallback_url so that, if the requested
-     browser isn't installed, Android falls back to the default https handler. */
-  const gmail = buildGmailUrl(content); // already https://mail.google.com/...
+function buildAndroidBrowserIntent(packageName, content) {
+  /* Open Gmail web inside a specific browser package (Chrome, Firefox, ...).
+     browser_fallback_url ensures Android falls back to the default https handler
+     if the requested browser isn't installed. */
+  const gmail = buildGmailUrl(content); // https://mail.google.com/...
   const stripped = gmail.replace(/^https:\/\//, '');
   const fb = encodeURIComponent(gmail);
   return `intent://${stripped}#Intent;scheme=https;package=${packageName};S.browser_fallback_url=${fb};end`;
+}
+
+function buildAndroidGmailAppIntent(content) {
+  /* Launch the Gmail Android app directly (bypassing Chrome's tendency to
+     hijack mailto: into Gmail web). Uses scheme=mailto with the Gmail package
+     so Android dispatches the ACTION_VIEW intent straight to Gmail. */
+  const to = CONFIG.RECIPIENT_EMAIL;
+  const su = encodeURIComponent(content.subject);
+  const body = encodeURIComponent(content.body);
+  const uriPath = `${to}?subject=${su}&body=${body}`;
+  const fb = encodeURIComponent(buildGmailUrl(content));
+  return `intent://${uriPath}#Intent;scheme=mailto;package=com.google.android.gm;S.browser_fallback_url=${fb};end`;
 }
 
 function detectPlatform() {
@@ -161,17 +174,24 @@ function openUrl(url, { sameTab = false } = {}) {
 }
 
 /* Bottom-sheet chooser shown only on mobile, so the user can pick which
-   browser / app handles the prefilled e-mail. */
+   browser / app handles the prefilled e-mail.
+
+   On Android we use intent: URLs throughout (sameTab navigation), so we
+   don't depend on mailto: working — some Chrome configurations leave mailto
+   unhandled, in which case nothing happens. Targeting Gmail's package via
+   intent bypasses that entirely. */
 function showMailerChooser(platform, content) {
   const options = platform === 'android'
     ? [
-        { label: 'Chrome',            url: buildAndroidIntentUrl('com.android.chrome',    content) },
-        { label: 'Firefox',           url: buildAndroidIntentUrl('org.mozilla.firefox',   content) },
-        { label: 'Altă aplicație',    url: buildMailtoUrl(content), sameTab: true },
+        { label: 'Aplicația Gmail', url: buildAndroidGmailAppIntent(content),                  sameTab: true },
+        { label: 'Chrome',          url: buildAndroidBrowserIntent('com.android.chrome',  content), sameTab: true },
+        { label: 'Firefox',         url: buildAndroidBrowserIntent('org.mozilla.firefox', content), sameTab: true },
+        { label: 'Altă aplicație',  url: buildMailtoUrl(content),                              sameTab: true },
       ]
     : [
-        { label: 'Chrome', url: `googlechromes://${buildGmailUrl(content).replace(/^https:\/\//, '')}` },
-        { label: 'Safari', url: buildGmailUrl(content) },
+        { label: 'Aplicația Gmail', url: `googlegmail://co?to=${encodeURIComponent(CONFIG.RECIPIENT_EMAIL)}&subject=${encodeURIComponent(content.subject)}&body=${encodeURIComponent(content.body)}`, sameTab: true },
+        { label: 'Chrome',          url: `googlechromes://${buildGmailUrl(content).replace(/^https:\/\//, '')}`, sameTab: true },
+        { label: 'Safari',          url: buildGmailUrl(content),                                                  sameTab: true },
       ];
 
   const backdrop = document.createElement('div');
