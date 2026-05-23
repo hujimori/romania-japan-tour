@@ -128,6 +128,111 @@ function buildGmailUrl({ subject, body }) {
   return `https://mail.google.com/mail/?${qs.toString()}`;
 }
 
+function buildMailtoUrl({ subject, body }) {
+  const su = encodeURIComponent(subject);
+  const bd = encodeURIComponent(body);
+  return `mailto:${CONFIG.RECIPIENT_EMAIL}?subject=${su}&body=${bd}`;
+}
+
+function buildAndroidIntentUrl(packageName, content) {
+  /* intent:// URL with browser_fallback_url so that, if the requested
+     browser isn't installed, Android falls back to the default https handler. */
+  const gmail = buildGmailUrl(content); // already https://mail.google.com/...
+  const stripped = gmail.replace(/^https:\/\//, '');
+  const fb = encodeURIComponent(gmail);
+  return `intent://${stripped}#Intent;scheme=https;package=${packageName};S.browser_fallback_url=${fb};end`;
+}
+
+function detectPlatform() {
+  const ua = navigator.userAgent || '';
+  if (/Android/i.test(ua)) return 'android';
+  /* iPadOS 13+ reports as Mac with touch; treat as iOS for our purposes */
+  if (/iPhone|iPad|iPod/i.test(ua)) return 'ios';
+  if (/Macintosh/.test(ua) && navigator.maxTouchPoints > 1) return 'ios';
+  return 'desktop';
+}
+
+function openUrl(url, { sameTab = false } = {}) {
+  if (sameTab) {
+    window.location.href = url;
+  } else {
+    window.open(url, '_blank', 'noopener,noreferrer');
+  }
+}
+
+/* Bottom-sheet chooser shown only on mobile, so the user can pick which
+   browser / app handles the prefilled e-mail. */
+function showMailerChooser(platform, content) {
+  const options = platform === 'android'
+    ? [
+        { label: 'Chrome',            url: buildAndroidIntentUrl('com.android.chrome',    content) },
+        { label: 'Firefox',           url: buildAndroidIntentUrl('org.mozilla.firefox',   content) },
+        { label: 'Altă aplicație',    url: buildMailtoUrl(content), sameTab: true },
+      ]
+    : [
+        { label: 'Chrome', url: `googlechromes://${buildGmailUrl(content).replace(/^https:\/\//, '')}` },
+        { label: 'Safari', url: buildGmailUrl(content) },
+      ];
+
+  const backdrop = document.createElement('div');
+  backdrop.className = 'chooser-backdrop';
+  backdrop.setAttribute('role', 'dialog');
+  backdrop.setAttribute('aria-modal', 'true');
+
+  const sheet = document.createElement('div');
+  sheet.className = 'chooser-sheet';
+
+  const title = document.createElement('div');
+  title.className = 'chooser-title';
+  title.textContent = 'Cum doriți să trimiteți?';
+  sheet.appendChild(title);
+
+  const desc = document.createElement('div');
+  desc.className = 'chooser-desc';
+  desc.textContent = 'Alegeți aplicația cu care să deschideți Gmail';
+  sheet.appendChild(desc);
+
+  const opts = document.createElement('div');
+  opts.className = 'chooser-options';
+  for (const o of options) {
+    const btn = document.createElement('button');
+    btn.type = 'button';
+    btn.className = 'chooser-option';
+    btn.textContent = o.label;
+    btn.addEventListener('click', () => {
+      close();
+      openUrl(o.url, { sameTab: !!o.sameTab });
+    });
+    opts.appendChild(btn);
+  }
+  sheet.appendChild(opts);
+
+  const cancel = document.createElement('button');
+  cancel.type = 'button';
+  cancel.className = 'chooser-cancel';
+  cancel.textContent = 'Anulează';
+  cancel.addEventListener('click', close);
+  sheet.appendChild(cancel);
+
+  backdrop.appendChild(sheet);
+  backdrop.addEventListener('click', (e) => { if (e.target === backdrop) close(); });
+  document.body.appendChild(backdrop);
+  document.body.style.overflow = 'hidden';
+  requestAnimationFrame(() => backdrop.classList.add('open'));
+
+  const onKey = (e) => { if (e.key === 'Escape') close(); };
+  document.addEventListener('keydown', onKey);
+
+  function close() {
+    backdrop.classList.remove('open');
+    document.removeEventListener('keydown', onKey);
+    setTimeout(() => {
+      backdrop.remove();
+      document.body.style.overflow = '';
+    }, 220);
+  }
+}
+
 function initContactForm() {
   const form = document.getElementById('contact-form');
   if (!form) return;
@@ -139,7 +244,12 @@ function initContactForm() {
       return;
     }
     const content = buildContent(getFormData(form));
-    window.open(buildGmailUrl(content), '_blank', 'noopener,noreferrer');
+    const platform = detectPlatform();
+    if (platform === 'desktop') {
+      openUrl(buildGmailUrl(content));
+    } else {
+      showMailerChooser(platform, content);
+    }
   });
 }
 
