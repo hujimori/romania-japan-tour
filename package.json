@@ -1,0 +1,14 @@
+{
+  "name": "romania-japan-tour",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "description": "Japonia Autentică · Ghid Privat — static landing page",
+  "scripts": {
+    "optimize": "node scripts/optimize-images.js",
+    "manifest": "node scripts/optimize-images.js --manifest-only"
+  },
+  "devDependencies": {
+    "sharp": "^0.33.5"
+  }
+}
