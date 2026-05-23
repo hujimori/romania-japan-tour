@@ -70,8 +70,20 @@ async function loadBackgroundImages() {
   masonry.appendChild(frag);
 }
 
-/* ───────── 2. Contact form → mailto: ───────── */
-function buildMailto(data) {
+/* ───────── 2. Contact form → Gmail web compose ───────── */
+function getFormData(form) {
+  const fd = new FormData(form);
+  return {
+    persoane:   fd.get('persoane')   || '',
+    durata:     fd.get('durata')     || '',
+    locuri:     fd.get('locuri')     || '',
+    experiente: fd.get('experiente') || '',
+    buget:      fd.get('buget')      || '',
+    email:      fd.get('email')      || '',
+  };
+}
+
+function buildContent(data) {
   const dash = (v) => (v && v.trim() ? v.trim() : '—');
 
   const subject = `Cerere de călătorie privată în Japonia — ${dash(data.persoane)}, ${dash(data.durata)} nopți`;
@@ -102,8 +114,18 @@ function buildMailto(data) {
     'Vă mulțumesc și aștept răspunsul dumneavoastră.',
   ].join('\n');
 
-  const params = `subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
-  return `mailto:${CONFIG.RECIPIENT_EMAIL}?${params}`;
+  return { subject, body };
+}
+
+function buildGmailUrl({ subject, body }) {
+  const qs = new URLSearchParams({
+    view: 'cm',
+    fs:   '1',
+    to:   CONFIG.RECIPIENT_EMAIL,
+    su:   subject,
+    body,
+  });
+  return `https://mail.google.com/mail/?${qs.toString()}`;
 }
 
 function initContactForm() {
@@ -112,23 +134,12 @@ function initContactForm() {
 
   form.addEventListener('submit', (e) => {
     e.preventDefault();
-
     if (!form.checkValidity()) {
       form.reportValidity();
       return;
     }
-
-    const fd = new FormData(form);
-    const data = {
-      persoane:   fd.get('persoane')   || '',
-      durata:     fd.get('durata')     || '',
-      locuri:     fd.get('locuri')     || '',
-      experiente: fd.get('experiente') || '',
-      buget:      fd.get('buget')      || '',
-      email:      fd.get('email')      || '',
-    };
-
-    window.location.href = buildMailto(data);
+    const content = buildContent(getFormData(form));
+    window.open(buildGmailUrl(content), '_blank', 'noopener,noreferrer');
   });
 }
 
