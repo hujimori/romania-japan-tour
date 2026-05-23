@@ -1,0 +1,153 @@
+<!doctype html>
+<html lang="ro">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Japonia Autentică · Ghid Privat</title>
+<meta name="description" content="Pătrundeți în inima caldă a Japoniei autentice. Experiențe private, dincolo de ghidurile turistice.">
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;1,400;1,500&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
+
+<link rel="stylesheet" href="css/style.css">
+<script src="js/main.js" defer></script>
+</head>
+<body>
+
+<!-- ───────── Background Masonry (populated by js/main.js) ───────── -->
+<div class="bg" aria-hidden="true">
+  <div class="bg-masonry"></div>
+</div>
+
+<main>
+
+  <!-- Nameplate -->
+  <div class="mark reveal">
+    <div class="nameplate">
+      <span class="seal">侘</span>
+      <span>Japonia</span>
+      <span class="dot"></span>
+      <span>Ghid Privat</span>
+    </div>
+  </div>
+
+  <!-- ───────── Hero ───────── -->
+  <section class="hero">
+    <div class="eyebrow reveal">Experiență privată &nbsp;·&nbsp; pe măsură</div>
+    <h1 class="reveal">Pătrundeți în <em>inima caldă</em> a Japoniei autentice.</h1>
+    <p class="sub reveal">Experimentați o Japonie pe care niciun ghid turistic nu o poate descrie.</p>
+    <div class="cta-row reveal">
+      <a href="#contact" class="btn btn-primary">
+        Planificați călătoria <span class="arrow">→</span>
+      </a>
+      <a href="#povestea" class="btn btn-ghost">
+        Povestea mea
+      </a>
+    </div>
+  </section>
+
+  <!-- ───────── Instagram feature card ───────── -->
+  <section class="block reveal">
+    <a class="paper ig-card" href="https://www.instagram.com/masato.japan.guide/" target="_blank" rel="noopener noreferrer">
+      <span class="ig-badge" aria-hidden="true">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+          <rect x="3" y="3" width="18" height="18" rx="5"></rect>
+          <circle cx="12" cy="12" r="4"></circle>
+          <circle cx="17.5" cy="6.5" r="0.9" fill="currentColor" stroke="none"></circle>
+        </svg>
+      </span>
+      <span class="ig-body">
+        <span class="ig-kicker">Urmăriți-mă pe Instagram</span>
+        <span class="ig-handle">@masato.<em>japan.guide</em></span>
+        <span class="ig-sub">Povești zilnice din Japonia autentică</span>
+      </span>
+      <span class="ig-arrow" aria-hidden="true">→</span>
+    </a>
+  </section>
+
+  <!-- ───────── About ───────── -->
+  <section id="povestea" class="block reveal">
+    <article class="paper about">
+      <div class="section-eyebrow">— 01 &nbsp;·&nbsp; Despre mine</div>
+      <h2 class="section-title">Povestea <em>mea</em></h2>
+
+      <p>
+        <span class="lead">Am locuit în România timp de 4 ani ca expat.</span>
+        În primul an, am vizitat doar locurile turistice obișnuite din București.
+        Dar, după ce mi-am făcut prieteni locali, aceștia m-au dus în satele lor și la casele bunicilor.
+        Atunci m-am îndrăgostit cu adevărat de România.
+      </p>
+
+      <hr class="divider">
+
+      <p>
+        Acum, vreau să vă arăt Japonia adevărată – nu doar fațada turistică din Tokyo, Osaka sau Kyoto.
+        Vreau să cunoașteți inima caldă a Japoniei și să o iubiți cu adevărat.
+      </p>
+    </article>
+  </section>
+
+  <!-- ───────── Contact ───────── -->
+  <section id="contact" class="block reveal">
+    <article class="paper contact">
+      <div class="section-eyebrow">— 02 &nbsp;·&nbsp; Cerere privată</div>
+      <h2 class="section-title">Planificați-vă <em>călătoria</em></h2>
+      <p class="intro">
+        Spuneți-mi câteva detalii și vă voi răspunde personal, cu un itinerar gândit doar pentru dumneavoastră.
+      </p>
+
+      <form id="contact-form" novalidate>
+
+        <div class="field">
+          <label for="persoane">Număr de persoane <span class="req">*</span></label>
+          <input id="persoane" name="persoane" type="text" inputmode="text"
+                 placeholder="ex: 2 adulți, 1 copil" autocomplete="off" required>
+        </div>
+
+        <div class="field">
+          <label for="durata">Durata călătoriei <span class="req">*</span></label>
+          <input id="durata" name="durata" type="number" min="1" max="60" inputmode="numeric"
+                 placeholder="Câte nopți?" required>
+        </div>
+
+        <div class="field">
+          <label for="locuri">Locuri pe care doriți să le vizitați</label>
+          <textarea id="locuri" name="locuri" rows="4"
+                    placeholder="Kyoto, sate de munte, izvoare termale, insule mici…"></textarea>
+        </div>
+
+        <div class="field">
+          <label for="experiente">Ce fel de experiențe vă doriți?</label>
+          <textarea id="experiente" name="experiente" rows="4"
+                    placeholder="Ceai cu o familie locală, ceremonie tradițională, gastronomie regională, natură…"></textarea>
+        </div>
+
+        <div class="field">
+          <label for="buget">Buget estimat</label>
+          <input id="buget" name="buget" type="text" inputmode="text"
+                 placeholder="ex: 8.000 € / persoană" autocomplete="off">
+        </div>
+
+        <div class="field">
+          <label for="email">Adresa de e-mail <span class="req">*</span></label>
+          <input id="email" name="email" type="email" inputmode="email"
+                 placeholder="numele@exemplu.ro" autocomplete="email" required>
+        </div>
+
+        <button type="submit">
+          Trimiteți cererea <span class="arrow">→</span>
+        </button>
+      </form>
+    </article>
+  </section>
+
+  <footer>
+    <div class="seal-line"><span>arigatō</span></div>
+    <div>© 2026 &nbsp;·&nbsp; Ghid Privat Japonia &nbsp;·&nbsp; pentru călători curioși</div>
+  </footer>
+
+</main>
+
+</body>
+</html>
