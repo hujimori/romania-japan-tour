@@ -128,32 +128,26 @@ function buildGmailUrl({ subject, body }) {
   return `https://mail.google.com/mail/?${qs.toString()}`;
 }
 
-function buildMailtoUrl({ subject, body }) {
-  const su = encodeURIComponent(subject);
-  const bd = encodeURIComponent(body);
-  return `mailto:${CONFIG.RECIPIENT_EMAIL}?subject=${su}&body=${bd}`;
-}
-
-function buildAndroidBrowserIntent(packageName, content) {
-  /* Open Gmail web inside a specific browser package (Chrome, Firefox, ...).
-     browser_fallback_url ensures Android falls back to the default https handler
-     if the requested browser isn't installed. */
-  const gmail = buildGmailUrl(content); // https://mail.google.com/...
-  const stripped = gmail.replace(/^https:\/\//, '');
-  const fb = encodeURIComponent(gmail);
-  return `intent://${stripped}#Intent;scheme=https;package=${packageName};S.browser_fallback_url=${fb};end`;
-}
-
 function buildAndroidGmailAppIntent(content) {
-  /* Launch the Gmail Android app directly (bypassing Chrome's tendency to
-     hijack mailto: into Gmail web). Uses scheme=mailto with the Gmail package
-     so Android dispatches the ACTION_VIEW intent straight to Gmail. */
+  /* Launch the Gmail Android app directly. Uses scheme=mailto with the Gmail
+     package so Android dispatches ACTION_VIEW straight to Gmail. browser_
+     fallback_url kicks in if Gmail isn't installed (Android handles this
+     transparently). This bypasses any browser-level mailto: handler issues. */
   const to = CONFIG.RECIPIENT_EMAIL;
   const su = encodeURIComponent(content.subject);
   const body = encodeURIComponent(content.body);
   const uriPath = `${to}?subject=${su}&body=${body}`;
   const fb = encodeURIComponent(buildGmailUrl(content));
   return `intent://${uriPath}#Intent;scheme=mailto;package=com.google.android.gm;S.browser_fallback_url=${fb};end`;
+}
+
+function buildIosGmailAppUrl(content) {
+  /* iOS Gmail app deep link. Silently fails if Gmail isn't installed —
+     we use a JS-side fallback (see openIosGmail) to navigate to Gmail web. */
+  const to = encodeURIComponent(CONFIG.RECIPIENT_EMAIL);
+  const su = encodeURIComponent(content.subject);
+  const body = encodeURIComponent(content.body);
+  return `googlegmail://co?to=${to}&subject=${su}&body=${body}`;
 }
 
 function detectPlatform() {
@@ -165,92 +159,27 @@ function detectPlatform() {
   return 'desktop';
 }
 
-function openUrl(url, { sameTab = false } = {}) {
-  if (sameTab) {
-    window.location.href = url;
-  } else {
-    window.open(url, '_blank', 'noopener,noreferrer');
+/* iOS deep-link to Gmail with a visibility-based fallback: if the page is
+   still visible after a short delay, the app didn't open (not installed or
+   user denied), so navigate to Gmail web instead. */
+function openIosGmail(content) {
+  const webUrl = buildGmailUrl(content);
+  const appUrl = buildIosGmailAppUrl(content);
+
+  const timer = setTimeout(() => {
+    document.removeEventListener('visibilitychange', onHidden);
+    window.location.href = webUrl;
+  }, 1500);
+
+  function onHidden() {
+    if (document.hidden) {
+      clearTimeout(timer);
+      document.removeEventListener('visibilitychange', onHidden);
+    }
   }
-}
+  document.addEventListener('visibilitychange', onHidden);
 
-/* Bottom-sheet chooser shown only on mobile, so the user can pick which
-   browser / app handles the prefilled e-mail.
-
-   On Android we use intent: URLs throughout (sameTab navigation), so we
-   don't depend on mailto: working — some Chrome configurations leave mailto
-   unhandled, in which case nothing happens. Targeting Gmail's package via
-   intent bypasses that entirely. */
-function showMailerChooser(platform, content) {
-  const options = platform === 'android'
-    ? [
-        { label: 'Aplicația Gmail', url: buildAndroidGmailAppIntent(content),                  sameTab: true },
-        { label: 'Chrome',          url: buildAndroidBrowserIntent('com.android.chrome',  content), sameTab: true },
-        { label: 'Firefox',         url: buildAndroidBrowserIntent('org.mozilla.firefox', content), sameTab: true },
-        { label: 'Altă aplicație',  url: buildMailtoUrl(content),                              sameTab: true },
-      ]
-    : [
-        { label: 'Aplicația Gmail', url: `googlegmail://co?to=${encodeURIComponent(CONFIG.RECIPIENT_EMAIL)}&subject=${encodeURIComponent(content.subject)}&body=${encodeURIComponent(content.body)}`, sameTab: true },
-        { label: 'Chrome',          url: `googlechromes://${buildGmailUrl(content).replace(/^https:\/\//, '')}`, sameTab: true },
-        { label: 'Safari',          url: buildGmailUrl(content),                                                  sameTab: true },
-      ];
-
-  const backdrop = document.createElement('div');
-  backdrop.className = 'chooser-backdrop';
-  backdrop.setAttribute('role', 'dialog');
-  backdrop.setAttribute('aria-modal', 'true');
-
-  const sheet = document.createElement('div');
-  sheet.className = 'chooser-sheet';
-
-  const title = document.createElement('div');
-  title.className = 'chooser-title';
-  title.textContent = 'Cum doriți să trimiteți?';
-  sheet.appendChild(title);
-
-  const desc = document.createElement('div');
-  desc.className = 'chooser-desc';
-  desc.textContent = 'Alegeți aplicația cu care să deschideți Gmail';
-  sheet.appendChild(desc);
-
-  const opts = document.createElement('div');
-  opts.className = 'chooser-options';
-  for (const o of options) {
-    const btn = document.createElement('button');
-    btn.type = 'button';
-    btn.className = 'chooser-option';
-    btn.textContent = o.label;
-    btn.addEventListener('click', () => {
-      close();
-      openUrl(o.url, { sameTab: !!o.sameTab });
-    });
-    opts.appendChild(btn);
-  }
-  sheet.appendChild(opts);
-
-  const cancel = document.createElement('button');
-  cancel.type = 'button';
-  cancel.className = 'chooser-cancel';
-  cancel.textContent = 'Anulează';
-  cancel.addEventListener('click', close);
-  sheet.appendChild(cancel);
-
-  backdrop.appendChild(sheet);
-  backdrop.addEventListener('click', (e) => { if (e.target === backdrop) close(); });
-  document.body.appendChild(backdrop);
-  document.body.style.overflow = 'hidden';
-  requestAnimationFrame(() => backdrop.classList.add('open'));
-
-  const onKey = (e) => { if (e.key === 'Escape') close(); };
-  document.addEventListener('keydown', onKey);
-
-  function close() {
-    backdrop.classList.remove('open');
-    document.removeEventListener('keydown', onKey);
-    setTimeout(() => {
-      backdrop.remove();
-      document.body.style.overflow = '';
-    }, 220);
-  }
+  window.location.href = appUrl;
 }
 
 function initContactForm() {
@@ -265,10 +194,13 @@ function initContactForm() {
     }
     const content = buildContent(getFormData(form));
     const platform = detectPlatform();
-    if (platform === 'desktop') {
-      openUrl(buildGmailUrl(content));
+
+    if (platform === 'android') {
+      window.location.href = buildAndroidGmailAppIntent(content);
+    } else if (platform === 'ios') {
+      openIosGmail(content);
     } else {
-      showMailerChooser(platform, content);
+      window.open(buildGmailUrl(content), '_blank', 'noopener,noreferrer');
     }
   });
 }
