@@ -130,15 +130,20 @@ function buildGmailUrl({ subject, body }) {
 
 function buildAndroidGmailAppIntent(content) {
   /* Launch the Gmail Android app directly. Uses scheme=mailto with the Gmail
-     package so Android dispatches ACTION_VIEW straight to Gmail. browser_
-     fallback_url kicks in if Gmail isn't installed (Android handles this
-     transparently). This bypasses any browser-level mailto: handler issues. */
+     package so Android dispatches ACTION_VIEW straight to Gmail.
+     browser_fallback_url kicks in if Gmail isn't installed.
+
+     IMPORTANT: we use `intent:` (no slashes), not `intent://`. mailto: is a
+     non-hierarchical scheme — using `intent://foo@bar.com?...` causes Chrome
+     to reconstruct it as `mailto://foo@bar.com?...`, and Gmail then treats
+     the literal `//` as part of the address. `intent:foo@bar.com?...` keeps
+     the URI opaque so the result is the correct `mailto:foo@bar.com?...`. */
   const to = CONFIG.RECIPIENT_EMAIL;
   const su = encodeURIComponent(content.subject);
   const body = encodeURIComponent(content.body);
-  const uriPath = `${to}?subject=${su}&body=${body}`;
+  const opaque = `${to}?subject=${su}&body=${body}`;
   const fb = encodeURIComponent(buildGmailUrl(content));
-  return `intent://${uriPath}#Intent;scheme=mailto;package=com.google.android.gm;S.browser_fallback_url=${fb};end`;
+  return `intent:${opaque}#Intent;scheme=mailto;package=com.google.android.gm;S.browser_fallback_url=${fb};end`;
 }
 
 function buildIosGmailAppUrl(content) {
